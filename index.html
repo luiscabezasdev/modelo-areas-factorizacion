@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo de Áreas para Factorización</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        tileA2: {
+                            light: '#3B82F6',
+                            DEFAULT: '#2563EB',
+                            dark: '#1D4ED8',
+                            bg: '#EFF6FF',
+                            border: '#93C5FD'
+                        },
+                        tileA: {
+                            light: '#10B981',
+                            DEFAULT: '#059669',
+                            dark: '#047857',
+                            bg: '#ECFDF5',
+                            border: '#6EE7B7'
+                        },
+                        tile1: {
+                            light: '#F59E0B',
+                            DEFAULT: '#D97706',
+                            dark: '#B45309',
+                            bg: '#FFFBEB',
+                            border: '#FCD34D'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+        }
+        
+        .tile-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        
+        .tile-shadow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .bg-grid-pattern {
+            background-size: 32px 32px;
+            background-image: 
+                linear-gradient(to right, rgba(229, 231, 235, 0.7) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(229, 231, 235, 0.7) 1px, transparent 1px);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-emerald-500 to-amber-500 flex items-center justify-center text-white shadow-md font-bold text-lg">
+                    a²
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-tight">Modelo de Áreas Interactivo</h1>
+                    <p class="text-xs font-medium text-slate-500">Factorización geométrica de polinomios cuadráticos <span class="font-semibold text-slate-700">a² + pa + q</span></p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="toggleInfoModal()" class="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-circle-question text-blue-600"></i> Guía / Concepto
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- LEFT COLUMN: Input Controls & Tile Inventory (4 Cols) -->
+            <section class="lg:col-span-4 space-y-5">
+                
+                <!-- Polynomial Input Card -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-blue-600"></i>
+                            Configurar Polinomio
+                        </h2>
+                        <span class="text-xs font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-200">
+                            a² + pa + q
+                        </span>
+                    </div>
+
+                    <!-- Input Controls -->
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="sliderP" class="text-xs font-semibold text-slate-700">
+                                    Coeficiente <span class="font-bold italic text-emerald-600">p</span> (término lineal <span class="italic">pa</span>):
+                                </label>
+                                <span id="valPDisplay" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">5</span>
+                            </div>
+                            <input type="range" id="sliderP" min="1" max="15" value="5" step="1" 
+                                   class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                                   oninput="syncInputFromSlider('p')">
+                            <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                                <span>1</span>
+                                <span>8</span>
+                                <span>15</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="sliderQ" class="text-xs font-semibold text-slate-700">
+                                    Término independiente <span class="font-bold italic text-amber-600">q</span> (unidad):
+                                </label>
+                                <span id="valQDisplay" class="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">6</span>
+                            </div>
+                            <input type="range" id="sliderQ" min="1" max="24" value="6" step="1" 
+                                   class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                                   oninput="syncInputFromSlider('q')">
+                            <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                                <span>1</span>
+                                <span>12</span>
+                                <span>24</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Number Inputs -->
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Valor exacto p</label>
+                            <input type="number" id="numP" value="5" min="1" max="15"
+                                   class="w-full px-2.5 py-1.5 text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                   onchange="syncSliderFromInput('p')">
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Valor exacto q</label>
+                            <input type="number" id="numQ" value="6" min="1" max="24"
+                                   class="w-full px-2.5 py-1.5 text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                                   onchange="syncSliderFromInput('q')">
+                        </div>
+                    </div>
+
+                    <!-- Presets -->
+                    <div class="pt-1">
+                        <p class="text-xs font-semibold text-slate-500 mb-2">Ejemplos rápidos:</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button onclick="setPreset(5, 6)" class="px-2.5 py-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition border border-slate-200">a² + 5a + 6</button>
+                            <button onclick="setPreset(7, 12)" class="px-2.5 py-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition border border-slate-200">a² + 7a + 12</button>
+                            <button onclick="setPreset(4, 4)" class="px-2.5 py-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition border border-slate-200">a² + 4a + 4</button>
+                            <button onclick="setPreset(3, 5)" class="px-2.5 py-1 text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition border border-rose-200" title="No factorizable">a² + 3a + 5 ⚠️</button>
+                            <button onclick="setPreset(4, 6)" class="px-2.5 py-1 text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition border border-rose-200" title="No factorizable">a² + 4a + 6 ⚠️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tile Inventory Summary Card -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-cubes text-slate-500"></i> Inventario de Fichas Requeridas
+                    </h3>
+                    
+                    <div class="grid grid-cols-3 gap-2">
+                        <!-- Tile a² -->
+                        <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 flex flex-col items-center text-center">
+                            <div class="w-8 h-8 rounded bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-sm mb-1">
+                                a²
+                            </div>
+                            <span class="text-xs font-medium text-slate-600">Cuadrado a²</span>
+                            <span id="countA2" class="text-lg font-black text-blue-700">1</span>
+                            <span class="text-[10px] text-slate-400">Área: a × a</span>
+                        </div>
+
+                        <!-- Tile a -->
+                        <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col items-center text-center">
+                            <div class="w-8 h-4 rounded bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center shadow-sm mb-1">
+                                a
+                            </div>
+                            <span class="text-xs font-medium text-slate-600">Rectángulo a</span>
+                            <span id="countA" class="text-lg font-black text-emerald-700">5</span>
+                            <span class="text-[10px] text-slate-400">Área: a × 1</span>
+                        </div>
+
+                        <!-- Tile 1 -->
+                        <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 flex flex-col items-center text-center">
+                            <div class="w-4 h-4 rounded bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center shadow-sm mb-1">
+                                1
+                            </div>
+                            <span class="text-xs font-medium text-slate-600">Unidad 1</span>
+                            <span id="count1" class="text-lg font-black text-amber-700">6</span>
+                            <span class="text-[10px] text-slate-400">Área: 1 × 1</span>
+                        </div>
+                    </div>
+
+                    <div class="text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex justify-between items-center text-slate-600">
+                        <span>Área Total del Polinomio:</span>
+                        <span id="totalAreaCalc" class="font-bold text-slate-800">a² + 5a + 6</span>
+                    </div>
+                </div>
+
+                <!-- Display Mode Switcher -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-2">Modo de Visualización</label>
+                    <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+                        <button id="btnModeAuto" onclick="switchViewMode('auto')" 
+                                class="py-2 px-3 text-xs font-bold rounded-lg transition-all shadow-sm bg-white text-blue-700">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-Construir
+                        </button>
+                        <button id="btnModeManual" onclick="switchViewMode('manual')" 
+                                class="py-2 px-3 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg transition-all">
+                            <i class="fa-solid fa-puzzle-piece mr-1"></i> Rompecabezas
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <section class="lg:col-span-8 space-y-5">
+
+                <!-- Main Viewport Card -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    
+                    <!-- Viewport Header -->
+                    <div class="px-5 py-3.5 bg-slate-50/80 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                            <h2 class="text-sm font-bold text-slate-800">
+                                Representación del Rectángulo de Área
+                            </h2>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="badgeFactorable" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-check"></i> Factorizable
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Auto Construction Mode Container -->
+                    <div id="viewAutoContainer" class="p-6 bg-grid-pattern min-h-[420px] flex items-center justify-center relative overflow-auto custom-scrollbar">
+                        <div id="svgWrapper" class="relative transition-all duration-300 transform max-w-full flex justify-center items-center">
+                            <svg id="areaSvg" class="drop-shadow-md mx-auto" overflow="visible">
+                                <!-- Dynamic SVG content populated by renderAreaSVG -->
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Puzzle Mode Container -->
+                    <div id="viewManualContainer" class="p-4 sm:p-6 bg-slate-100 min-h-[480px] hidden flex-col items-center justify-between gap-4 select-none">
+                        
+                        <!-- Puzzle Toolbar -->
+                        <div class="w-full flex flex-col sm:flex-row justify-between items-center gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="text-center sm:text-left">
+                                <p class="text-xs font-bold text-slate-800 flex items-center gap-1.5 justify-center sm:justify-start">
+                                    <i class="fa-solid fa-hand-pointer text-blue-600"></i> Rompecabezas Interactivo con Mover en Grupo
+                                </p>
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    Arrastra fichas al tablero. Clic derecho o <i class="fa-solid fa-rotate text-emerald-600 font-bold"></i> para girar <span class="text-emerald-600 font-bold">a</span>. Usa <strong class="text-blue-700 font-bold">Seleccionar Todo</strong> o <kbd class="px-1 bg-slate-200 rounded text-[10px]">Shift+Clic</kbd> para mover figuras armadas juntas.
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="toggleSelectAllPlaced()" id="btnSelectAll" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition border border-slate-300 flex items-center gap-1" title="Seleccionar todas las fichas del tablero para moverlas juntas">
+                                    <i class="fa-solid fa-object-group text-blue-600"></i> <span id="lblSelectAll">Seleccionar Todo</span>
+                                </button>
+                                <button onclick="resetPuzzle()" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition border border-slate-300 flex items-center gap-1">
+                                    <i class="fa-solid fa-rotate-left"></i> Reiniciar
+                                </button>
+                                <button onclick="verifyPuzzle()" class="px-3.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition shadow-sm flex items-center gap-1.5">
+                                    <i class="fa-solid fa-square-root-variable"></i> Verificar y Calcular
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Formula Banner for the Assembled Puzzle -->
+                        <div id="puzzleFormulaCard" class="w-full bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-800 transition-all flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-emerald-400 flex items-center justify-center text-white text-lg shrink-0 shadow">
+                                    <i class="fa-solid fa-calculator"></i>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Fórmula Detectada del Armado Actual:</span>
+                                    <div id="puzzleFormulaExpr" class="text-base sm:text-lg font-extrabold text-emerald-400">
+                                        Arrastra fichas para construir un rectángulo...
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 bg-slate-800/80 px-3.5 py-2 rounded-lg border border-slate-700/80 w-full md:w-auto justify-around">
+                                <div class="text-center">
+                                    <span class="text-[10px] text-slate-400 font-semibold block">Base</span>
+                                    <span id="puzzleValBase" class="text-xs font-extrabold text-blue-400">-</span>
+                                </div>
+                                <div class="text-slate-600 text-xs font-bold">×</div>
+                                <div class="text-center">
+                                    <span class="text-[10px] text-slate-400 font-semibold block">Altura</span>
+                                    <span id="puzzleValHeight" class="text-xs font-extrabold text-emerald-400">-</span>
+                                </div>
+                                <div class="text-slate-600 text-xs font-bold">=</div>
+                                <div class="text-center">
+                                    <span class="text-[10px] text-slate-400 font-semibold block">Área Armada</span>
+                                    <span id="puzzleValArea" class="text-xs font-extrabold text-amber-400">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Puzzle Board & Bank Grid -->
+                        <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                            
+                            <!-- Tile Bank / Palette (4 cols) -->
+                            <div class="lg:col-span-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-boxes-stacked text-blue-500"></i> Banco de Fichas
+                                    </span>
+                                    <span id="puzzleTileCountBadge" class="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-200">
+                                        0/0 en tablero
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-1 bg-slate-50 p-2 rounded-xl border border-slate-200 text-xs">
+                                    <span class="text-[11px] text-slate-600 font-bold flex items-center gap-1">
+                                        <i class="fa-solid fa-plus text-blue-600"></i> Añadir:
+                                    </span>
+                                    <div class="flex gap-1.5">
+                                        <button onclick="addPuzzleTile('a2')" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition active:scale-95 flex items-center gap-1" title="Añadir ficha a²">
+                                            + a²
+                                        </button>
+                                        <button onclick="addPuzzleTile('a')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition active:scale-95 flex items-center gap-1" title="Añadir ficha a">
+                                            + a
+                                        </button>
+                                        <button onclick="addPuzzleTile('1')" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[11px] font-bold shadow-sm transition active:scale-95 flex items-center gap-1" title="Añadir ficha 1">
+                                            + 1
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="puzzleBank" class="min-h-[220px] p-3 bg-slate-50 rounded-xl border border-dashed border-slate-300 flex flex-wrap gap-2.5 items-center justify-center content-start max-h-[320px] overflow-auto custom-scrollbar relative">
+                                    <!-- Dynamic puzzle bank tiles -->
+                                </div>
+                            </div>
+
+                            <!-- Workspace Grid Board (8 cols) -->
+                            <div class="lg:col-span-8 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
+                                <div id="puzzleWorkspaceWrapper" class="relative w-full overflow-auto flex justify-center p-2 min-h-[340px] custom-scrollbar">
+                                    <div id="puzzleGrid" class="relative bg-grid-pattern border-2 border-dashed border-slate-300 rounded-xl transition-all" style="width: 480px; height: 320px;">
+                                        <div id="puzzlePrompt" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs font-medium pointer-events-none p-4 text-center">
+                                            <i class="fa-solid fa-arrows-to-dot text-2xl mb-1 text-slate-300"></i>
+                                            <span>Arrastra y suelta las fichas en esta cuadrícula</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="puzzleFeedback" class="w-full mt-3 p-3 rounded-xl text-xs font-bold hidden text-center transition-all border">
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Bottom Result Banner -->
+                    <div id="resultStatusBanner" class="p-4 bg-emerald-50 border-t border-emerald-200 flex flex-col md:flex-row items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div id="resultIcon" class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-equals"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs text-emerald-800 font-semibold uppercase tracking-wider">Resultado de la Factorización Teórica:</div>
+                                <div id="resultExpr" class="text-lg font-extrabold text-emerald-950">
+                                    a² + 5a + 6 = (a + 3)(a + 2)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-[11px] text-emerald-700 font-medium">Área = Base × Altura</div>
+                            <div id="resultDimensions" class="text-xs font-bold text-emerald-900">
+                                (a + 3) × (a + 2)
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Mathematical Step-by-Step Breakdown Card -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <i class="fa-solid fa-graduation-cap text-blue-600"></i>
+                        Análisis Matemático Paso a Paso
+                    </h3>
+
+                    <div id="mathExplanationContent" class="text-xs text-slate-600 leading-relaxed space-y-3">
+                        <!-- Dynamic explanation injected here -->
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Info / Concept Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-auto custom-scrollbar">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-shapes text-blue-600"></i> ¿Cómo funciona el Modelo de Áreas?
+                </h3>
+                <button onclick="toggleInfoModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
+                <p>
+                    El <strong>modelo de áreas</strong> es una representación geométrica que permite visualizar la multiplicación y factorización de polinomios cuadráticos.
+                </p>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-5 rounded bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center">a²</span>
+                        <span><strong>1 ficha a²:</strong> Cuadrado de lado a × a y área a².</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-2 rounded bg-emerald-600 text-white font-bold text-[8px] flex items-center justify-center">a</span>
+                        <span><strong>p fichas a:</strong> Rectángulos de lados a × 1 y área a.</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-amber-500 text-white font-bold text-[8px] flex items-center justify-center">1</span>
+                        <span><strong>q fichas 1:</strong> Cuadrados pequeños de lado 1 × 1 y área 1.</span>
+                    </div>
+                </div>
+
+                <h4 class="font-bold text-slate-800 pt-2">Condición de Factorización sobre Enteros Positivos:</h4>
+                <p>
+                    Para organizar 1 ficha a², p fichas a y q fichas 1 en un rectángulo completo de lados (a + m) y (a + n), se deben cumplir dos condiciones:
+                </p>
+                <ul class="list-disc pl-5 space-y-1 font-medium text-slate-700">
+                    <li>El producto de los enteros m × n = q.</li>
+                    <li>La suma de los enteros m + n = p.</li>
+                </ul>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="toggleInfoModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>Simulador Educativo de Álgebra — Modelo de Áreas</span>
+            <span class="font-medium text-slate-600">Factorización: a² + pa + q = (a + m)(a + n)</span>
+        </div>
+    </footer>
+
+    <script>
+        // State variables
+        let currentP = 5;
+        let currentQ = 6;
+        let viewMode = 'auto'; // 'auto' | 'manual'
+        
+        // Puzzle grid constants
+        const GRID_UNIT = 32; // 32px per unit in grid
+        const SCALE_A = 3;    // Tile 'a' is 3 units (96px)
+        const SCALE_1 = 1;    // Tile '1' is 1 unit (32px)
+        let puzzleTiles = [];
+        let idCounter = 1;
+        let draggedTileId = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // The (p, q) that the current puzzleTiles inventory was generated for.
+        // Used so we only rebuild (and discard) the puzzle when the target
+        // polynomial actually changes, instead of on every re-render.
+        let puzzleGeneratedForP = null;
+        let puzzleGeneratedForQ = null;
+
+        // Single source of truth for new tile ids, so bank/init/custom tiles
+        // never risk colliding.
+        function nextTileId() {
+            return `tile_${idCounter++}`;
+        }
+
+        function addPuzzleTile(type) {
+            const newTile = {
+                id: nextTileId(),
+                type: type,
+                label: type === 'a2' ? 'a²' : (type === 'a' ? 'a' : '1'),
+                unitW: (type === 'a2' || type === 'a') ? SCALE_A : SCALE_1,
+                unitH: type === 'a2' ? SCALE_A : SCALE_1,
+                isRotated: false,
+                isPlaced: false,
+                isSelected: false,
+                gridX: 0,
+                gridY: 0
+            };
+            puzzleTiles.push(newTile);
+            renderPuzzle();
+            hidePuzzleFeedback();
+            updatePuzzleAnalysis();
+        }
+
+        function toggleSelectAllPlaced() {
+            const placed = puzzleTiles.filter(t => t.isPlaced);
+            if (placed.length === 0) return;
+
+            const allPlacedSelected = placed.every(t => t.isSelected);
+
+            puzzleTiles.forEach(t => {
+                if (t.isPlaced) {
+                    t.isSelected = !allPlacedSelected;
+                } else {
+                    t.isSelected = false;
+                }
+            });
+
+            renderPuzzle();
+        }
+
+        function clearTileSelection() {
+            let changed = false;
+            puzzleTiles.forEach(t => {
+                if (t.isSelected) {
+                    t.isSelected = false;
+                    changed = true;
+                }
+            });
+            if (changed) renderPuzzle();
+        }
+
+        function removePuzzleTile(tileId) {
+            puzzleTiles = puzzleTiles.filter(t => t.id !== tileId);
+            renderPuzzle();
+            hidePuzzleFeedback();
+            updatePuzzleAnalysis();
+        }
+
+        function rotateTile(tile) {
+            if (!tile || tile.type !== 'a') return;
+            tile.isRotated = !tile.isRotated;
+            const temp = tile.unitW;
+            tile.unitW = tile.unitH;
+            tile.unitH = temp;
+            renderPuzzle();
+            hidePuzzleFeedback();
+            updatePuzzleAnalysis();
+        }
+
+        // DOM Element references
+        const sliderP = document.getElementById('sliderP');
+        const sliderQ = document.getElementById('sliderQ');
+        const numP = document.getElementById('numP');
+        const numQ = document.getElementById('numQ');
+        const valPDisplay = document.getElementById('valPDisplay');
+        const valQDisplay = document.getElementById('valQDisplay');
+        const countA2 = document.getElementById('countA2');
+        const countA = document.getElementById('countA');
+        const count1 = document.getElementById('count1');
+        const totalAreaCalc = document.getElementById('totalAreaCalc');
+        const areaSvg = document.getElementById('areaSvg');
+        const badgeFactorable = document.getElementById('badgeFactorable');
+        const resultStatusBanner = document.getElementById('resultStatusBanner');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultExpr = document.getElementById('resultExpr');
+        const resultDimensions = document.getElementById('resultDimensions');
+        const mathExplanationContent = document.getElementById('mathExplanationContent');
+
+        window.onload = function() {
+            updateSimulation();
+        };
+
+        // Sync slider to number input
+        function syncInputFromSlider(param) {
+            if (param === 'p') {
+                currentP = parseInt(sliderP.value) || 1;
+                numP.value = currentP;
+                valPDisplay.textContent = currentP;
+            } else if (param === 'q') {
+                currentQ = parseInt(sliderQ.value) || 1;
+                numQ.value = currentQ;
+                valQDisplay.textContent = currentQ;
+            }
+            updateSimulation();
+        }
+
+        // Sync number input to slider
+        function syncSliderFromInput(param) {
+            if (param === 'p') {
+                let val = parseInt(numP.value) || 1;
+                // Clamped to the slider's own range (1-15) — previously this allowed
+                // up to 30, which desynced the slider thumb from the typed value
+                // (a <input type="range"> silently clamps values above its own max).
+                val = Math.max(1, Math.min(15, val));
+                currentP = val;
+                numP.value = val;
+                sliderP.value = val;
+                valPDisplay.textContent = val;
+            } else if (param === 'q') {
+                let val = parseInt(numQ.value) || 1;
+                // Same fix as above, matching the Q slider's range (1-24).
+                val = Math.max(1, Math.min(24, val));
+                currentQ = val;
+                numQ.value = val;
+                sliderQ.value = val;
+                valQDisplay.textContent = val;
+            }
+            updateSimulation();
+        }
+
+        // Set quick preset
+        function setPreset(p, q) {
+            currentP = p;
+            currentQ = q;
+            sliderP.value = p;
+            sliderQ.value = q;
+            numP.value = p;
+            numQ.value = q;
+            valPDisplay.textContent = p;
+            valQDisplay.textContent = q;
+            updateSimulation();
+        }
+
+        /**
+         * Find positive integer factor pair (m, n) for polynomial a^2 + pa + q
+         * such that m * n = q and m + n = p
+         */
+        function findFactorPair(p, q) {
+            const factors = [];
+            for (let i = 1; i <= Math.sqrt(q); i++) {
+                if (q % i === 0) {
+                    const pair1 = i;
+                    const pair2 = q / i;
+                    factors.push([pair1, pair2]);
+                }
+            }
+
+            for (let pair of factors) {
+                const [m, n] = pair;
+                if (m + n === p) {
+                    return { factorable: true, m: Math.min(m, n), n: Math.max(m, n), allPairs: factors };
+                }
+            }
+            return { factorable: false, m: null, n: null, allPairs: factors };
+        }
+
+        function updateSimulation() {
+            // 1. Update Inventory counts
+            countA2.textContent = 1;
+            countA.textContent = currentP;
+            count1.textContent = currentQ;
+            totalAreaCalc.textContent = `a² + ${currentP}a + ${currentQ}`;
+
+            // 2. Compute Factoring
+            const result = findFactorPair(currentP, currentQ);
+
+            // 3. Render SVG Rectangle Area Model
+            renderAreaSVG(result, currentP, currentQ);
+
+            // 4. Update Banner & Status Badges
+            updateStatusAndExplanation(result, currentP, currentQ);
+
+            // 5. Refresh the interactive puzzle ONLY when the target polynomial
+            // actually changed. Rebuilding it on every call (e.g. when just
+            // switching view modes or re-rendering) used to silently wipe out
+            // any tiles the user had already placed or added — this is the fix
+            // for the "tiles disappear" bug.
+            if (puzzleGeneratedForP !== currentP || puzzleGeneratedForQ !== currentQ) {
+                initPuzzle();
+            }
+        }
+
+        function renderAreaSVG(result, p, q) {
+            if (!areaSvg) return;
+
+            const U = 28;  // pixels per 1 unit width/height
+            const A = 100; // pixels for dimension 'a'
+            const padX = 65; // offset x for dimension labels
+            const padY = 65; // offset y for dimension labels
+
+            if (result.factorable) {
+                const m = result.m; // height addition (bottom horizontal 'a' tiles)
+                const n = result.n; // width addition (right vertical 'a' tiles)
+
+                const totalW = A + n * U;
+                const totalH = A + m * U;
+
+                const svgWidth = totalW + padX + 50;
+                const svgHeight = totalH + padY + 50;
+
+                areaSvg.setAttribute('width', svgWidth);
+                areaSvg.setAttribute('height', svgHeight);
+                areaSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+
+                let svgContent = '';
+
+                // 1. Tile a^2 (Top-Left)
+                svgContent += `
+                    <g transform="translate(${padX}, ${padY})">
+                        <rect x="0" y="0" width="${A}" height="${A}" fill="#2563EB" rx="4" stroke="#1D4ED8" stroke-width="2" />
+                        <text x="${A/2}" y="${A/2 + 6}" font-family="Inter" font-weight="bold" font-size="20" fill="#FFFFFF" text-anchor="middle">a²</text>
+                    </g>
+                `;
+
+                // 2. Vertical 'a' Tiles (Top-Right, n tiles)
+                for (let i = 0; i < n; i++) {
+                    const xPos = padX + A + i * U;
+                    svgContent += `
+                        <g transform="translate(${xPos}, ${padY})">
+                            <rect x="0" y="0" width="${U}" height="${A}" fill="#059669" rx="3" stroke="#047857" stroke-width="1.5" />
+                            <text x="${U/2}" y="${A/2 + 5}" font-family="Inter" font-weight="bold" font-size="12" fill="#FFFFFF" text-anchor="middle">a</text>
+                        </g>
+                    `;
+                }
+
+                // 3. Horizontal 'a' Tiles (Bottom-Left, m tiles)
+                for (let j = 0; j < m; j++) {
+                    const yPos = padY + A + j * U;
+                    svgContent += `
+                        <g transform="translate(${padX}, ${yPos})">
+                            <rect x="0" y="0" width="${A}" height="${U}" fill="#059669" rx="3" stroke="#047857" stroke-width="1.5" />
+                            <text x="${A/2}" y="${U/2 + 4}" font-family="Inter" font-weight="bold" font-size="12" fill="#FFFFFF" text-anchor="middle">a</text>
+                        </g>
+                    `;
+                }
+
+                // 4. Unit '1' Tiles (Bottom-Right, m x n tiles)
+                for (let j = 0; j < m; j++) {
+                    for (let i = 0; i < n; i++) {
+                        const xPos = padX + A + i * U;
+                        const yPos = padY + A + j * U;
+                        svgContent += `
+                            <g transform="translate(${xPos}, ${yPos})">
+                                <rect x="0" y="0" width="${U}" height="${U}" fill="#D97706" rx="2" stroke="#B45309" stroke-width="1" />
+                                <text x="${U/2}" y="${U/2 + 4}" font-family="Inter" font-weight="bold" font-size="10" fill="#FFFFFF" text-anchor="middle">1</text>
+                            </g>
+                        `;
+                    }
+                }
+
+                // 5. TOP DIMENSION LABEL (Base: a + n)
+                svgContent += `
+                    <path d="M ${padX} ${padY - 15} L ${padX + totalW} ${padY - 15}" stroke="#1E293B" stroke-width="2"/>
+                    <line x1="${padX}" y1="${padY - 22}" x2="${padX}" y2="${padY - 8}" stroke="#1E293B" stroke-width="2"/>
+                    <line x1="${padX + totalW}" y1="${padY - 22}" x2="${padX + totalW}" y2="${padY - 8}" stroke="#1E293B" stroke-width="2"/>
+                    <line x1="${padX + A}" y1="${padY - 18}" x2="${padX + A}" y2="${padY - 12}" stroke="#64748B" stroke-width="1.5" stroke-dasharray="2,2"/>
+                    
+                    <text x="${padX + A/2}" y="${padY - 25}" font-family="Inter" font-weight="bold" font-size="12" fill="#2563EB" text-anchor="middle">a</text>
+                    <text x="${padX + A + (n*U)/2}" y="${padY - 25}" font-family="Inter" font-weight="bold" font-size="12" fill="#D97706" text-anchor="middle">${n}</text>
+                    
+                    <rect x="${padX + totalW/2 - 40}" y="${padY - 50}" width="80" height="22" rx="6" fill="#1E293B" />
+                    <text x="${padX + totalW/2}" y="${padY - 35}" font-family="Inter" font-weight="extrabold" font-size="12" fill="#FFFFFF" text-anchor="middle">Base: a + ${n}</text>
+                `;
+
+                // 6. LEFT DIMENSION LABEL (Height: a + m)
+                svgContent += `
+                    <path d="M ${padX - 15} ${padY} L ${padX - 15} ${padY + totalH}" stroke="#1E293B" stroke-width="2"/>
+                    <line x1="${padX - 22}" y1="${padY}" x2="${padX - 8}" y2="${padY}" stroke="#1E293B" stroke-width="2"/>
+                    <line x1="${padX - 22}" y1="${padY + totalH}" x2="${padX - 8}" y2="${padY + totalH}" stroke="#1E293B" stroke-width="2"/>
+                    <line x1="${padX - 18}" y1="${padY + A}" x2="${padX - 12}" y2="${padY + A}" stroke="#64748B" stroke-width="1.5" stroke-dasharray="2,2"/>
+                    
+                    <text x="${padX - 25}" y="${padY + A/2 + 4}" font-family="Inter" font-weight="bold" font-size="12" fill="#2563EB" text-anchor="end">a</text>
+                    <text x="${padX - 25}" y="${padY + A + (m*U)/2 + 4}" font-family="Inter" font-weight="bold" font-size="12" fill="#D97706" text-anchor="end">${m}</text>
+                    
+                    <g transform="translate(${padX - 45}, ${padY + totalH/2}) rotate(-90)">
+                        <rect x="-45" y="-11" width="90" height="22" rx="6" fill="#1E293B" />
+                        <text x="0" y="4" font-family="Inter" font-weight="extrabold" font-size="12" fill="#FFFFFF" text-anchor="middle">Altura: a + ${m}</text>
+                    </g>
+                `;
+
+                areaSvg.innerHTML = svgContent;
+
+            } else {
+                // NOT FACTORABLE VISUAL REPRESENTATION
+                const mTry = Math.floor(p / 2);
+                const nTry = p - mTry;
+
+                const totalW = A + nTry * U;
+                const totalH = A + mTry * U;
+
+                const svgWidth = totalW + padX + 50;
+                const svgHeight = totalH + padY + 60;
+
+                areaSvg.setAttribute('width', svgWidth);
+                areaSvg.setAttribute('height', svgHeight);
+                areaSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+
+                let svgContent = '';
+
+                // 1. Tile a^2
+                svgContent += `
+                    <g transform="translate(${padX}, ${padY})">
+                        <rect x="0" y="0" width="${A}" height="${A}" fill="#2563EB" rx="4" stroke="#1D4ED8" stroke-width="2" />
+                        <text x="${A/2}" y="${A/2 + 6}" font-family="Inter" font-weight="bold" font-size="20" fill="#FFFFFF" text-anchor="middle">a²</text>
+                    </g>
+                `;
+
+                // 2. Vertical 'a' Tiles
+                for (let i = 0; i < nTry; i++) {
+                    const xPos = padX + A + i * U;
+                    svgContent += `
+                        <g transform="translate(${xPos}, ${padY})">
+                            <rect x="0" y="0" width="${U}" height="${A}" fill="#059669" rx="3" stroke="#047857" stroke-width="1.5" />
+                            <text x="${U/2}" y="${A/2 + 5}" font-family="Inter" font-weight="bold" font-size="12" fill="#FFFFFF" text-anchor="middle">a</text>
+                        </g>
+                    `;
+                }
+
+                // 3. Horizontal 'a' Tiles
+                for (let j = 0; j < mTry; j++) {
+                    const yPos = padY + A + j * U;
+                    svgContent += `
+                        <g transform="translate(${padX}, ${yPos})">
+                            <rect x="0" y="0" width="${A}" height="${U}" fill="#059669" rx="3" stroke="#047857" stroke-width="1.5" />
+                            <text x="${A/2}" y="${U/2 + 4}" font-family="Inter" font-weight="bold" font-size="12" fill="#FFFFFF" text-anchor="middle">a</text>
+                        </g>
+                    `;
+                }
+
+                // 4. Fill unit 1 tiles and draw missing gap hatched area
+                let drawn1s = 0;
+                for (let j = 0; j < mTry; j++) {
+                    for (let i = 0; i < nTry; i++) {
+                        const xPos = padX + A + i * U;
+                        const yPos = padY + A + j * U;
+
+                        if (drawn1s < q) {
+                            svgContent += `
+                                <g transform="translate(${xPos}, ${yPos})">
+                                    <rect x="0" y="0" width="${U}" height="${U}" fill="#D97706" rx="2" stroke="#B45309" stroke-width="1" />
+                                    <text x="${U/2}" y="${U/2 + 4}" font-family="Inter" font-weight="bold" font-size="10" fill="#FFFFFF" text-anchor="middle">1</text>
+                                </g>
+                            `;
+                            drawn1s++;
+                        } else {
+                            // Empty gap cell
+                            svgContent += `
+                                <g transform="translate(${xPos}, ${yPos})">
+                                    <rect x="0" y="0" width="${U}" height="${U}" fill="#FFE4E6" rx="2" stroke="#F43F5E" stroke-width="1.5" stroke-dasharray="3,3" />
+                                    <text x="${U/2}" y="${U/2 + 4}" font-family="Inter" font-weight="bold" font-size="12" fill="#E11D48" text-anchor="middle">?</text>
+                                </g>
+                            `;
+                        }
+                    }
+                }
+
+                // Alert Warning Banner overlaid on SVG
+                svgContent += `
+                    <g transform="translate(${padX + totalW/2}, ${padY + totalH/2})">
+                        <rect x="-130" y="-20" width="260" height="40" rx="20" fill="#BE123C" opacity="0.95" />
+                        <text x="0" y="5" font-family="Inter" font-weight="bold" font-size="12" fill="#FFFFFF" text-anchor="middle">
+                            ⚠️ No forma un rectángulo perfecto
+                        </text>
+                    </g>
+                `;
+
+                areaSvg.innerHTML = svgContent;
+            }
+        }
+
+        function updateStatusAndExplanation(result, p, q) {
+            if (result.factorable) {
+                badgeFactorable.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5";
+                badgeFactorable.innerHTML = `<i class="fa-solid fa-circle-check"></i> Factorizable: (a + ${result.n})(a + ${result.m})`;
+
+                resultStatusBanner.className = "p-4 bg-emerald-50 border-t border-emerald-200 flex flex-col md:flex-row items-center justify-between gap-3";
+                resultIcon.className = "w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0";
+                resultIcon.innerHTML = `<i class="fa-solid fa-equals"></i>`;
+
+                resultExpr.className = "text-lg font-extrabold text-emerald-950";
+                resultExpr.textContent = `a² + ${p}a + ${q} = (a + ${result.n})(a + ${result.m})`;
+
+                resultDimensions.className = "text-xs font-bold text-emerald-900";
+                resultDimensions.textContent = `(a + ${result.n}) × (a + ${result.m})`;
+
+                mathExplanationContent.innerHTML = `
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                        <p><strong>1. Identificación de fichas:</strong> Se requieren <strong>1</strong> ficha de $a^2$, <strong>${p}</strong> fichas de $a$, y <strong>${q}</strong> fichas de $1$.</p>
+                        <p><strong>2. Factores del término independiente q = ${q}:</strong></p>
+                        <ul class="list-disc pl-5 text-slate-700 font-medium">
+                            ${result.allPairs.map(pair => {
+                                const sum = pair[0] + pair[1];
+                                const isMatch = (sum === p);
+                                return `<li class="${isMatch ? 'text-emerald-700 font-bold' : ''}">Factores (${pair[0]}, ${pair[1]}) → Suma: ${pair[0]} + ${pair[1]} = ${sum} ${isMatch ? '✓ (Coincide con p = ' + p + ')' : ''}</li>`;
+                            }).join('')}
+                        </ul>
+                        <p><strong>3. Conclusión Geométrica:</strong> Las fichas se organizan de manera exacta en un rectángulo de <strong>Base = (a + ${result.n})</strong> y <strong>Altura = (a + ${result.m})</strong>, logrando un área total de $(a + ${result.n})(a + ${result.m}) = a^2 + ${p}a + ${q}$.</p>
+                    </div>
+                `;
+            } else {
+                badgeFactorable.className = "px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1.5";
+                badgeFactorable.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> No Factorizable sobre Enteros Positivos`;
+
+                resultStatusBanner.className = "p-4 bg-rose-50 border-t border-rose-200 flex flex-col md:flex-row items-center justify-between gap-3";
+                resultIcon.className = "w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xl shrink-0";
+                resultIcon.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+
+                resultExpr.className = "text-lg font-extrabold text-rose-950";
+                resultExpr.textContent = `a² + ${p}a + ${q} (No factorizable sobre Z⁺)`;
+
+                resultDimensions.className = "text-xs font-bold text-rose-900";
+                resultDimensions.textContent = `Imposible armar un rectángulo sin huecos o sobras`;
+
+                mathExplanationContent.innerHTML = `
+                    <div class="p-3 bg-rose-50/50 rounded-xl border border-rose-200 space-y-2">
+                        <p class="text-rose-900 font-semibold"><strong>⚠️ Sin solución en enteros positivos:</strong></p>
+                        <p>Para construir un rectángulo completo con 1 ficha $a^2$, ${p} fichas $a$ y ${q} fichas $1$, necesitamos encontrar dos enteros positivos $m, n$ tales que $m \\times n = ${q}$ y $m + n = ${p}$.</p>
+                        <p><strong>Factores posibles de q = ${q}:</strong></p>
+                        <ul class="list-disc pl-5 text-slate-700 font-medium">
+                            ${result.allPairs.map(pair => {
+                                const sum = pair[0] + pair[1];
+                                return `<li class="text-rose-700">Factores (${pair[0]}, ${pair[1]}) → Suma: ${pair[0]} + ${pair[1]} = ${sum} ≠ ${p}</li>`;
+                            }).join('')}
+                        </ul>
+                        <p>Ningún par de factores de ${q} suma ${p}. Por lo tanto, <strong>no es posible armar un rectángulo perfecto</strong> con estas fichas.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function switchViewMode(mode) {
+            viewMode = mode;
+            const btnAuto = document.getElementById('btnModeAuto');
+            const btnManual = document.getElementById('btnModeManual');
+            const containerAuto = document.getElementById('viewAutoContainer');
+            const containerManual = document.getElementById('viewManualContainer');
+
+            if (mode === 'auto') {
+                btnAuto.className = "py-2 px-3 text-xs font-bold rounded-lg transition-all shadow-sm bg-white text-blue-700";
+                btnManual.className = "py-2 px-3 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg transition-all";
+                containerAuto.classList.remove('hidden');
+                containerManual.classList.add('hidden');
+                containerManual.classList.remove('flex');
+            } else {
+                btnManual.className = "py-2 px-3 text-xs font-bold rounded-lg transition-all shadow-sm bg-white text-blue-700";
+                btnAuto.className = "py-2 px-3 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg transition-all";
+                containerAuto.classList.add('hidden');
+                containerManual.classList.remove('hidden');
+                containerManual.classList.add('flex');
+                // Only build the puzzle the first time we enter this mode.
+                // Previously this ran on every switch back into "Rompecabezas",
+                // which erased any tiles the user had already placed/added
+                // whenever they glanced at "Auto-Construir" and came back.
+                if (puzzleTiles.length === 0) {
+                    initPuzzle();
+                } else {
+                    renderPuzzle();
+                    updatePuzzleAnalysis();
+                }
+            }
+        }
+
+        function initPuzzle() {
+            puzzleTiles = [];
+            idCounter = 1;
+            puzzleGeneratedForP = currentP;
+            puzzleGeneratedForQ = currentQ;
+
+            // 1 Tile a^2
+            puzzleTiles.push({
+                id: nextTileId(),
+                type: 'a2',
+                label: 'a²',
+                unitW: SCALE_A,
+                unitH: SCALE_A,
+                isRotated: false,
+                isPlaced: false,
+                isSelected: false,
+                gridX: 0,
+                gridY: 0
+            });
+
+            // p Tiles a
+            for (let i = 0; i < currentP; i++) {
+                puzzleTiles.push({
+                    id: nextTileId(),
+                    type: 'a',
+                    label: 'a',
+                    unitW: SCALE_A,
+                    unitH: SCALE_1,
+                    isRotated: false,
+                    isPlaced: false,
+                    isSelected: false,
+                    gridX: 0,
+                    gridY: 0
+                });
+            }
+
+            // q Tiles 1
+            for (let i = 0; i < currentQ; i++) {
+                puzzleTiles.push({
+                    id: nextTileId(),
+                    type: '1',
+                    label: '1',
+                    unitW: SCALE_1,
+                    unitH: SCALE_1,
+                    isRotated: false,
+                    isPlaced: false,
+                    isSelected: false,
+                    gridX: 0,
+                    gridY: 0
+                });
+            }
+
+            renderPuzzle();
+            hidePuzzleFeedback();
+            updatePuzzleAnalysis();
+        }
+
+        function resetPuzzle() {
+            puzzleTiles.forEach(t => {
+                t.isPlaced = false;
+                t.isRotated = false;
+                t.isSelected = false;
+                if (t.type === 'a') {
+                    t.unitW = SCALE_A;
+                    t.unitH = SCALE_1;
+                }
+            });
+            renderPuzzle();
+            hidePuzzleFeedback();
+            updatePuzzleAnalysis();
+        }
+
+        function renderPuzzle() {
+            const bankEl = document.getElementById('puzzleBank');
+            const gridEl = document.getElementById('puzzleGrid');
+            const badgeEl = document.getElementById('puzzleTileCountBadge');
+            const promptEl = document.getElementById('puzzlePrompt');
+            const lblSelectAll = document.getElementById('lblSelectAll');
+
+            if (!bankEl || !gridEl) return;
+
+            // Clear background selection click listener setup
+            if (!gridEl.dataset.hasSelectListener) {
+                gridEl.addEventListener('pointerdown', (e) => {
+                    if (e.target.id === 'puzzleGrid' || e.target.id === 'puzzlePrompt') {
+                        clearTileSelection();
+                    }
+                });
+                gridEl.dataset.hasSelectListener = "true";
+            }
+
+            bankEl.innerHTML = '';
+            
+            const existingGridTiles = gridEl.querySelectorAll('.puzzle-tile-element');
+            existingGridTiles.forEach(el => el.remove());
+
+            let placedCount = 0;
+
+            puzzleTiles.forEach(tile => {
+                const tileEl = createTileDOMElement(tile);
+
+                if (tile.isPlaced) {
+                    placedCount++;
+                    tileEl.style.position = 'absolute';
+                    tileEl.style.left = (tile.gridX * GRID_UNIT) + 'px';
+                    tileEl.style.top = (tile.gridY * GRID_UNIT) + 'px';
+                    gridEl.appendChild(tileEl);
+                } else {
+                    tileEl.style.position = 'relative';
+                    bankEl.appendChild(tileEl);
+                }
+            });
+
+            if (badgeEl) {
+                badgeEl.textContent = `${placedCount}/${puzzleTiles.length} en tablero`;
+            }
+
+            if (promptEl) {
+                promptEl.style.display = placedCount === 0 ? 'flex' : 'none';
+            }
+
+            if (lblSelectAll) {
+                const placed = puzzleTiles.filter(t => t.isPlaced);
+                const allSelected = placed.length > 0 && placed.every(t => t.isSelected);
+                lblSelectAll.textContent = allSelected ? 'Desseleccionar' : 'Seleccionar Todo';
+            }
+        }
+
+        function createTileDOMElement(tile) {
+            const el = document.createElement('div');
+            el.id = tile.id;
+            el.className = `puzzle-tile-element tile-shadow rounded-lg flex items-center justify-center font-bold text-white cursor-grab active:cursor-grabbing select-none transition-transform z-10 touch-none relative group`;
+            
+            const pixelW = tile.unitW * GRID_UNIT;
+            const pixelH = tile.unitH * GRID_UNIT;
+
+            el.style.width = `${pixelW}px`;
+            el.style.height = `${pixelH}px`;
+
+            if (tile.type === 'a2') {
+                el.className += ' bg-blue-600 border border-blue-400 text-sm';
+            } else if (tile.type === 'a') {
+                el.className += ' bg-emerald-600 border border-emerald-400 text-xs';
+                el.title = '🖱️ Clic derecho o toca 🔄 para girar esta ficha (Horizontal ↔ Vertical)';
+            } else {
+                el.className += ' bg-amber-500 border border-amber-300 text-[11px]';
+            }
+
+            if (tile.isSelected) {
+                el.className += ' ring-4 ring-amber-300 ring-offset-1 z-20 shadow-xl';
+            }
+
+            el.innerHTML = `<span>${tile.label}</span>`;
+
+            // Delete button on top-left corner
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.title = 'Eliminar esta ficha';
+            delBtn.className = 'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[9px] flex items-center justify-center transition-all shadow z-20 hover:scale-110';
+            delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            delBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+            delBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                removePuzzleTile(tile.id);
+            });
+            el.appendChild(delBtn);
+
+            if (tile.type === 'a') {
+                const rotBtn = document.createElement('button');
+                rotBtn.type = 'button';
+                rotBtn.title = 'Girar ficha (Horizontal ↔ Vertical)';
+                rotBtn.className = 'absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-emerald-900/80 hover:bg-emerald-950 text-white text-[9px] flex items-center justify-center transition-all shadow z-20 hover:scale-110';
+                rotBtn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+                
+                rotBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+                rotBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    rotateTile(tile);
+                });
+                
+                el.appendChild(rotBtn);
+
+                el.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    rotateTile(tile);
+                });
+            }
+
+            el.addEventListener('pointerdown', (e) => onTilePointerDown(e, tile));
+
+            // Double-tap-to-rotate. The timestamp is stored on the tile object
+            // (not a local variable) because renderPuzzle() rebuilds this DOM
+            // element from scratch after every interaction — a local variable
+            // here would reset to 0 on every render and the second tap could
+            // never be detected.
+            el.addEventListener('pointerup', (e) => {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - (tile.lastTap || 0);
+                if (tapLength < 300 && tapLength > 0 && tile.type === 'a') {
+                    rotateTile(tile);
+                    e.preventDefault();
+                }
+                tile.lastTap = currentTime;
+            });
+
+            return el;
+        }
+
+        function onTilePointerDown(e, tile) {
+            e.preventDefault();
+
+            // Handle Shift+Click for toggling individual tile selection
+            if (e.shiftKey) {
+                tile.isSelected = !tile.isSelected;
+                renderPuzzle();
+                if (!tile.isSelected) return;
+            } else if (!tile.isSelected) {
+                // If clicking an unselected tile without shift, deselect others and select this one
+                puzzleTiles.forEach(t => t.isSelected = false);
+                tile.isSelected = true;
+                renderPuzzle();
+            }
+
+            draggedTileId = tile.id;
+
+            const gridEl = document.getElementById('puzzleGrid');
+            const targetEl = document.getElementById(tile.id);
+            if (!gridEl || !targetEl) return;
+
+            targetEl.setPointerCapture(e.pointerId);
+
+            const gridRect = gridEl.getBoundingClientRect();
+            
+            // Selected tiles group to move together
+            const groupTiles = puzzleTiles.filter(t => t.isPlaced && t.isSelected);
+            const isGroupMove = groupTiles.length > 1 && tile.isSelected && tile.isPlaced;
+
+            const tilesToMove = isGroupMove ? groupTiles : [tile];
+
+            // BUG FIX: tiles dragged straight from the bank used to compute their
+            // starting position with el.offsetLeft/offsetTop, which is relative to
+            // the BANK container. Every other calculation in this drag (startMouseX,
+            // deltaPixelX, the final snap check...) is relative to the GRID
+            // container instead. Mixing those two coordinate systems is what made
+            // freshly-added/bank tiles jump to the wrong spot on drop, land outside
+            // the grid bounds, and silently bounce back to the bank — i.e.
+            // "disappear". Fix: express every tile's starting position in the
+            // grid's own coordinate space via getBoundingClientRect() instead of
+            // offsetLeft/offsetTop. The reparent into gridEl still happens lazily
+            // on the first pointermove (not here) — doing it immediately on
+            // pointerdown was tried and turned out to risk losing pointer capture
+            // in some browsers when the captured element is moved in the same tick.
+            const activeTiles = tilesToMove.map(at => {
+                const el = document.getElementById(at.id);
+                let pixelLeft, pixelTop;
+
+                if (at.isPlaced) {
+                    pixelLeft = at.gridX * GRID_UNIT;
+                    pixelTop = at.gridY * GRID_UNIT;
+                } else if (el) {
+                    const elRect = el.getBoundingClientRect();
+                    pixelLeft = elRect.left - gridRect.left;
+                    pixelTop = elRect.top - gridRect.top;
+                } else {
+                    pixelLeft = 0;
+                    pixelTop = 0;
+                }
+
+                return {
+                    tile: at,
+                    element: el,
+                    startX: at.gridX,
+                    startY: at.gridY,
+                    pixelLeft,
+                    pixelTop
+                };
+            });
+
+            const startMouseX = e.clientX - gridRect.left;
+            const startMouseY = e.clientY - gridRect.top;
+
+            activeTiles.forEach(at => {
+                if (at.element) {
+                    at.element.classList.add('z-30', 'scale-105', 'opacity-90');
+                }
+            });
+
+            const onPointerMove = (moveEvt) => {
+                if (draggedTileId !== tile.id) return;
+
+                const currentMouseX = moveEvt.clientX - gridRect.left;
+                const currentMouseY = moveEvt.clientY - gridRect.top;
+
+                const deltaPixelX = currentMouseX - startMouseX;
+                const deltaPixelY = currentMouseY - startMouseY;
+
+                activeTiles.forEach(at => {
+                    if (at.element) {
+                        const newLeft = at.pixelLeft + deltaPixelX;
+                        const newTop = at.pixelTop + deltaPixelY;
+                        at.element.style.position = 'absolute';
+                        at.element.style.left = `${newLeft}px`;
+                        at.element.style.top = `${newTop}px`;
+
+                        if (at.element.parentElement !== gridEl) {
+                            gridEl.appendChild(at.element);
+                        }
+                    }
+                });
+            };
+
+            const onPointerUp = (upEvt) => {
+                targetEl.releasePointerCapture(upEvt.pointerId);
+
+                targetEl.removeEventListener('pointermove', onPointerMove);
+                targetEl.removeEventListener('pointerup', onPointerUp);
+
+                activeTiles.forEach(at => {
+                    if (at.element) {
+                        at.element.classList.remove('z-30', 'scale-105', 'opacity-90');
+                    }
+                });
+
+                const currentMouseX = upEvt.clientX - gridRect.left;
+                const currentMouseY = upEvt.clientY - gridRect.top;
+
+                const deltaGridX = Math.round((currentMouseX - startMouseX) / GRID_UNIT);
+                const deltaGridY = Math.round((currentMouseY - startMouseY) / GRID_UNIT);
+
+                const maxGridCols = Math.floor(gridEl.clientWidth / GRID_UNIT);
+                const maxGridRows = Math.floor(gridEl.clientHeight / GRID_UNIT);
+
+                // Check group boundary constraints
+                let canMoveGroup = true;
+                if (isGroupMove) {
+                    canMoveGroup = activeTiles.every(at => {
+                        const targetX = at.startX + deltaGridX;
+                        const targetY = at.startY + deltaGridY;
+                        return (
+                            targetX >= 0 && (targetX + at.tile.unitW) <= maxGridCols &&
+                            targetY >= 0 && (targetY + at.tile.unitH) <= maxGridRows
+                        );
+                    });
+                }
+
+                activeTiles.forEach(at => {
+                    if (isGroupMove && canMoveGroup) {
+                        at.tile.isPlaced = true;
+                        at.tile.gridX = at.startX + deltaGridX;
+                        at.tile.gridY = at.startY + deltaGridY;
+                    } else if (!isGroupMove) {
+                        const currentLeft = at.element ? (parseFloat(at.element.style.left) || 0) : 0;
+                        const currentTop = at.element ? (parseFloat(at.element.style.top) || 0) : 0;
+                        let snappedX = Math.round(currentLeft / GRID_UNIT);
+                        let snappedY = Math.round(currentTop / GRID_UNIT);
+
+                        const isInside = (
+                            snappedX >= 0 && (snappedX + at.tile.unitW) <= maxGridCols &&
+                            snappedY >= 0 && (snappedY + at.tile.unitH) <= maxGridRows
+                        );
+
+                        if (isInside) {
+                            at.tile.isPlaced = true;
+                            at.tile.gridX = snappedX;
+                            at.tile.gridY = snappedY;
+                        } else {
+                            at.tile.isPlaced = false;
+                        }
+                    }
+                });
+
+                draggedTileId = null;
+                renderPuzzle();
+                hidePuzzleFeedback();
+                updatePuzzleAnalysis();
+            };
+
+            targetEl.addEventListener('pointermove', onPointerMove);
+            targetEl.addEventListener('pointerup', onPointerUp);
+        }
+
+        /**
+         * STREAMING_CHUNK: Analyzing assembled puzzle geometry and deriving algebraic formula...
+         * Analyzes current puzzle layout on grid to detect if it forms a solid rectangle,
+         * computes its Base and Height in terms of 'a' and constants, and updates live formula.
+         */
+        function updatePuzzleAnalysis() {
+            const formulaExprEl = document.getElementById('puzzleFormulaExpr');
+            const valBaseEl = document.getElementById('puzzleValBase');
+            const valHeightEl = document.getElementById('puzzleValHeight');
+            const valAreaEl = document.getElementById('puzzleValArea');
+
+            if (!formulaExprEl) return;
+
+            const placed = puzzleTiles.filter(t => t.isPlaced);
+
+            if (placed.length === 0) {
+                formulaExprEl.innerHTML = `<span class="text-slate-400 text-sm font-normal">Arrastra fichas al tablero para calcular la fórmula...</span>`;
+                valBaseEl.textContent = '-';
+                valHeightEl.textContent = '-';
+                valAreaEl.textContent = '-';
+                return null;
+            }
+
+            // Find grid bounds
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            let hasOverlap = false;
+            const gridMatrix = {};
+
+            placed.forEach(t => {
+                for (let dx = 0; dx < t.unitW; dx++) {
+                    for (let dy = 0; dy < t.unitH; dy++) {
+                        const cx = t.gridX + dx;
+                        const cy = t.gridY + dy;
+                        const key = `${cx},${cy}`;
+
+                        minX = Math.min(minX, cx);
+                        maxX = Math.max(maxX, cx);
+                        minY = Math.min(minY, cy);
+                        maxY = Math.max(maxY, cy);
+
+                        if (gridMatrix[key]) {
+                            hasOverlap = true;
+                        }
+                        gridMatrix[key] = t;
+                    }
+                }
+            });
+
+            if (hasOverlap) {
+                formulaExprEl.innerHTML = `<span class="text-rose-400 text-sm font-semibold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Hay fichas superpuestas</span>`;
+                valBaseEl.textContent = 'Error';
+                valHeightEl.textContent = 'Error';
+                valAreaEl.textContent = 'Superposición';
+                return { isValidRectangle: false, reason: 'overlap' };
+            }
+
+            const boundW = maxX - minX + 1;
+            const boundH = maxY - minY + 1;
+            const totalCellsOccupied = Object.keys(gridMatrix).length;
+            const expectedRectangleCells = boundW * boundH;
+
+            if (totalCellsOccupied !== expectedRectangleCells) {
+                formulaExprEl.innerHTML = `<span class="text-amber-400 text-sm font-semibold"><i class="fa-solid fa-shapes mr-1"></i> La figura aún no forma un rectángulo sólido</span>`;
+                valBaseEl.textContent = 'Incompleto';
+                valHeightEl.textContent = 'Incompleto';
+                valAreaEl.textContent = 'Forma irregular';
+                return { isValidRectangle: false, reason: 'irregular' };
+            }
+
+            // Solid rectangle confirmed! Calculate Base along top edge (y = minY)
+            let u = 0, v = 0; // Base = u*a + v
+            let cx = minX;
+            while (cx <= maxX) {
+                const tile = gridMatrix[`${cx},${minY}`];
+                if (tile.unitW === SCALE_A) {
+                    u++;
+                    cx += SCALE_A;
+                } else {
+                    v++;
+                    cx += SCALE_1;
+                }
+            }
+
+            // Calculate Height along left edge (x = minX)
+            let r = 0, s = 0; // Height = r*a + s
+            let cy = minY;
+            while (cy <= maxY) {
+                const tile = gridMatrix[`${minX},${cy}`];
+                if (tile.unitH === SCALE_A) {
+                    r++;
+                    cy += SCALE_A;
+                } else {
+                    s++;
+                    cy += SCALE_1;
+                }
+            }
+
+            // Format helper for linear expressions (e.g. "a + 3" or "2a + 1" or "a")
+            const formatDim = (aCoeff, constCoeff) => {
+                let parts = [];
+                if (aCoeff === 1) parts.push('a');
+                else if (aCoeff > 1) parts.push(`${aCoeff}a`);
+
+                if (constCoeff > 0) parts.push(`${constCoeff}`);
+
+                if (parts.length === 0) return '0';
+                return parts.join(' + ');
+            };
+
+            const strBase = formatDim(u, v);
+            const strHeight = formatDim(r, s);
+
+            // Compute expanded product: (u*a + v)(r*a + s) = (u*r)a^2 + (u*s + v*r)a + (v*s)
+            const coeffA2 = u * r;
+            const coeffA = u * s + v * r;
+            const coeff1 = v * s;
+
+            let expandedParts = [];
+            if (coeffA2 === 1) expandedParts.push('a²');
+            else if (coeffA2 > 1) expandedParts.push(`${coeffA2}a²`);
+
+            if (coeffA === 1) expandedParts.push('a');
+            else if (coeffA > 1) expandedParts.push(`${coeffA}a`);
+
+            if (coeff1 > 0) expandedParts.push(`${coeff1}`);
+
+            const strExpanded = expandedParts.length > 0 ? expandedParts.join(' + ') : '0';
+            const strFactorized = `(${strBase})(${strHeight})`;
+
+            // Render live formula badge
+            formulaExprEl.innerHTML = `
+                <span class="text-emerald-300 font-extrabold">${strFactorized}</span>
+                <span class="text-slate-400 font-normal mx-1 font-sans">=</span>
+                <span class="text-amber-300 font-extrabold">${strExpanded}</span>
+            `;
+
+            valBaseEl.textContent = strBase;
+            valHeightEl.textContent = strHeight;
+            valAreaEl.textContent = strExpanded;
+
+            return {
+                isValidRectangle: true,
+                u, v, r, s,
+                baseStr: strBase,
+                heightStr: strHeight,
+                factorizedStr: strFactorized,
+                expandedStr: strExpanded,
+                placedCount: placed.length,
+                totalTiles: puzzleTiles.length
+            };
+        }
+
+        function verifyPuzzle() {
+            const analysis = updatePuzzleAnalysis();
+
+            if (!analysis) {
+                showPuzzleFeedback('⚠️ Arrastra fichas a la cuadrícula para construir un rectángulo.', 'warning');
+                return;
+            }
+
+            if (!analysis.isValidRectangle) {
+                if (analysis.reason === 'overlap') {
+                    showPuzzleFeedback('❌ Hay fichas superpuestas. Acomódalas sin que se encima ninguna.', 'error');
+                } else {
+                    showPuzzleFeedback('❌ Las fichas no forman un rectángulo sólido completo (hay espacios vacíos o bordes irregulares).', 'error');
+                }
+                return;
+            }
+
+            const targetFactor = findFactorPair(currentP, currentQ);
+            const isAllTilesUsed = (analysis.placedCount === analysis.totalTiles);
+
+            if (isAllTilesUsed) {
+                if (targetFactor.factorable) {
+                    // Check if constructed formula matches target factorization
+                    const matchesTarget = (
+                        (analysis.u === 1 && analysis.v === targetFactor.n && analysis.r === 1 && analysis.s === targetFactor.m) ||
+                        (analysis.u === 1 && analysis.v === targetFactor.m && analysis.r === 1 && analysis.s === targetFactor.n)
+                    );
+
+                    if (matchesTarget) {
+                        showPuzzleFeedback(
+                            `🎉 <strong>¡EXCELENTE TRABAJO!</strong> Has construido exactamente el rectángulo de la fórmula:<br>` +
+                            `<span class="text-sm font-black text-emerald-900 font-mono">${analysis.factorizedStr} = ${analysis.expandedStr}</span><br>` +
+                            `Base = <strong>(${analysis.baseStr})</strong>, Altura = <strong>(${analysis.heightStr})</strong>`,
+                            'success'
+                        );
+                    } else {
+                        showPuzzleFeedback(
+                            `📐 <strong>¡Rectángulo Válido Construido!</strong><br>` +
+                            `Tu figura representa la fórmula: <strong class="font-mono text-amber-900">${analysis.factorizedStr} = ${analysis.expandedStr}</strong>.<br>` +
+                            `Sin embargo, no coincide con la organización óptima de <strong>a² + ${currentP}a + ${currentQ}</strong>.`,
+                            'warning'
+                        );
+                    }
+                } else {
+                    showPuzzleFeedback(
+                        `⚠️ <strong>¡Buen intento de construcción!</strong> Armaste la figura de fórmula <strong class="font-mono text-amber-900">${analysis.factorizedStr} = ${analysis.expandedStr}</strong>.<br>` +
+                        `Nota: El polinomio objetivo <strong>a² + ${currentP}a + ${currentQ}</strong> NO es factorizable con enteros positivos.`,
+                        'warning'
+                    );
+                }
+            } else {
+                showPuzzleFeedback(
+                    `📐 <strong>Rectángulo Parcial Válido (${analysis.placedCount}/${analysis.totalTiles} fichas):</strong><br>` +
+                    `Fórmula de la sección armada: <strong class="font-mono text-blue-900">${analysis.factorizedStr} = ${analysis.expandedStr}</strong>.<br>` +
+                    `Aún te quedan fichas en el banco para completar la totalidad del polinomio objetivo.`,
+                    'warning'
+                );
+            }
+        }
+
+        function showPuzzleFeedback(msg, type) {
+            const feedbackEl = document.getElementById('puzzleFeedback');
+            if (!feedbackEl) return;
+
+            feedbackEl.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-300', 'bg-amber-50', 'text-amber-800', 'border-amber-300', 'bg-rose-50', 'text-rose-800', 'border-rose-300');
+
+            if (type === 'success') {
+                feedbackEl.classList.add('bg-emerald-50', 'text-emerald-900', 'border-emerald-300');
+            } else if (type === 'warning') {
+                feedbackEl.classList.add('bg-amber-50', 'text-amber-900', 'border-amber-300');
+            } else {
+                feedbackEl.classList.add('bg-rose-50', 'text-rose-900', 'border-rose-300');
+            }
+
+            feedbackEl.innerHTML = msg;
+        }
+
+        function hidePuzzleFeedback() {
+            const feedbackEl = document.getElementById('puzzleFeedback');
+            if (feedbackEl) feedbackEl.classList.add('hidden');
+        }
+
+        function toggleInfoModal() {
+            const modal = document.getElementById('infoModal');
+            if (modal) modal.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
